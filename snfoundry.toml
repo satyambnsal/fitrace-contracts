@@ -9,7 +9,7 @@ account = "katana_1"
 accounts-file = "/Users/satyam/.starknet_accounts/starknet_open_zeppelin_accounts.json"
 url = "http://127.0.0.1:5050"
 
-[sncast.mainnet_339]
-account = "sat_339"
-accounts-file = "/Users/satyam/.starknet_accounts/starknet_open_zeppelin_accounts.json"
-url = "https://starknet-mainnet.public.blastapi.io"
+# [sncast.mainnet_339]
+# account = "sat_339"
+# accounts-file = "/Users/satyam/.starknet_accounts/starknet_open_zeppelin_accounts.json"
+# url = "https://starknet-mainnet.public.blastapi.io"

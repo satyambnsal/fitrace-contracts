@@ -1,4 +1,2 @@
-mod BlobCloneNFT;
-mod DodgeBallNFT;
-mod DodgeCoin;
-mod DodgeCoach;
+mod SneakerNFT;
+mod FRTCoin;

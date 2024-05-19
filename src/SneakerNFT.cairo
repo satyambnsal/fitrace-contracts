@@ -1,37 +1,36 @@
 use starknet::ContractAddress;
 
 #[starknet::interface]
-pub trait IBlobCloneNFT<TContractState> {
-    fn mint(ref self: TContractState, recipient: ContractAddress) -> u256;
+pub trait ISneakerNFT<TContractState> {
+    fn mint(
+        ref self: TContractState, recipient: ContractAddress, sneaker_type: u8, sneaker_level: u8
+    ) -> u256;
+    fn set_base_uri(ref self: TContractState, base_uri: ByteArray);
+    fn get_sneaker_type_and_level(self: @TContractState, token_id: u256) -> (u8, u8);
 }
 
 
 #[starknet::contract]
-mod BlobCloneNFT {
+mod SneakerNFT {
     use openzeppelin::introspection::src5::SRC5Component;
     use openzeppelin::token::erc721::ERC721Component;
     use starknet::{ContractAddress, get_caller_address};
-    use openzeppelin::access::ownable::OwnableComponent;
-    use openzeppelin::access::ownable::ownable::OwnableComponent::InternalTrait as OwnableInternalTrait;
+    use openzeppelin::token::erc721::interface::{IERC721Dispatcher, IERC721DispatcherTrait};
+    use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
 
     component!(path: ERC721Component, storage: erc721, event: ERC721Event);
     component!(path: SRC5Component, storage: src5, event: SRC5Event);
-    component!(path: OwnableComponent, storage: ownable, event: OwnableEvent);
 
     // ERC721
     #[abi(embed_v0)]
     impl ERC721Impl = ERC721Component::ERC721Impl<ContractState>;
-
     #[abi(embed_v0)]
     impl ERC721MetadataImpl = ERC721Component::ERC721MetadataImpl<ContractState>;
-
     #[abi(embed_v0)]
     impl ERC721CamelOnly = ERC721Component::ERC721CamelOnlyImpl<ContractState>;
-
     #[abi(embed_v0)]
     impl ERC721MetadataCamelOnly =
         ERC721Component::ERC721MetadataCamelOnlyImpl<ContractState>;
-
     impl ERC721InternalImpl = ERC721Component::InternalImpl<ContractState>;
 
     // SRC5
@@ -46,8 +45,8 @@ mod BlobCloneNFT {
         src5: SRC5Component::Storage,
         total_count: u32,
         owner: ContractAddress,
-        #[substorage(v0)]
-        ownable: OwnableComponent::Storage,
+        sneaker_type: LegacyMap::<u256, u8>,
+        sneaker_level: LegacyMap::<u256, u8>
     }
 
     #[event]
@@ -56,22 +55,24 @@ mod BlobCloneNFT {
         #[flat]
         ERC721Event: ERC721Component::Event,
         #[flat]
-        SRC5Event: SRC5Component::Event,
-        #[flat]
-        OwnableEvent: OwnableComponent::Event,
+        SRC5Event: SRC5Component::Event
     }
 
     mod Errors {
         pub const ONLY_OWNER: felt252 = 'Only owner can do operation';
+        pub const ONLY_BLOBERT_OWNER: felt252 = 'Only Blobert owner can do op';
+        pub const ZERO_DODGECOIN: felt252 = 'Dodgecoin is zero address';
     }
 
     #[constructor]
-    fn constructor(ref self: ContractState, owner: ContractAddress) {
-        let name = "BlobClone";
-        let symbol = "BLOBCLONENFT";
-        let base_uri = "https://api.example.com/v1/";
+    fn constructor(
+        ref self: ContractState, owner: ContractAddress, blobert_address: ContractAddress
+    ) {
+        let name = "Fitrace Sneaker";
+        let symbol = "FRTSNEAKER";
+        let base_uri = "https://fitrace.xyz/api?id=";
         let token_id = 1;
-        self.ownable.initializer(owner);
+
         self.erc721.initializer(name, symbol, base_uri);
         self.owner.write(owner);
         self.erc721._mint(owner, token_id);
@@ -80,12 +81,26 @@ mod BlobCloneNFT {
 
 
     #[abi(embed_v0)]
-    impl IBlobertCloneImpl of super::IBlobCloneNFT<ContractState> {
-        fn mint(ref self: ContractState, recipient: ContractAddress) -> u256 {
+    impl IDodgeBallNFTImpl of super::ISneakerNFT<ContractState> {
+        fn mint(
+            ref self: ContractState, recipient: ContractAddress, sneaker_type: u8, sneaker_level: u8
+        ) -> u256 {
+            assert(get_caller_address() == self.owner.read(), Errors::ONLY_OWNER);
             let token_id = self.total_count.read() + 1;
             self.total_count.write(token_id);
             self.erc721._mint(recipient, token_id.into());
+            self.sneaker_type.write(token_id.into(), sneaker_type);
+            self.sneaker_level.write(token_id.into(), sneaker_level);
             token_id.into()
+        }
+
+        fn set_base_uri(ref self: ContractState, base_uri: ByteArray) {
+            assert(get_caller_address() == self.owner.read(), Errors::ONLY_OWNER);
+            self.erc721._set_base_uri(base_uri);
+        }
+
+        fn get_sneaker_type_and_level(self: @ContractState, token_id: u256) -> (u8, u8) {
+            (self.sneaker_type.read(token_id), self.sneaker_level.read(token_id))
         }
     }
 }

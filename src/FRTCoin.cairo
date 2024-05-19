@@ -1,17 +1,17 @@
 use starknet::ContractAddress;
 
 #[starknet::interface]
-pub trait IDodgeCoin<TContractState> {
+pub trait IFRTCoin<TContractState> {
     fn mint(ref self: TContractState, recipient: ContractAddress, amount: u256);
-    fn set_dodgeball_address(ref self: TContractState, dodgeball_address: ContractAddress);
-    fn get_dodgeball_address(self: @TContractState) -> ContractAddress;
-    fn set_dodgecoach_address(ref self: TContractState, dodgecoach_address: ContractAddress);
-    fn get_dodgecoach_address(self: @TContractState) -> ContractAddress;
+    fn get_sneaker_contract_address(self: @TContractState) -> ContractAddress;
+    fn set_sneaker_contract_address(
+        ref self: TContractState, sneaker_contract_address: ContractAddress
+    );
 }
 
 
 #[starknet::contract]
-mod DodgeCoin {
+mod FRTCoin {
     use openzeppelin::token::erc20::ERC20Component;
     use starknet::{ContractAddress, get_caller_address};
     use openzeppelin::token::erc20::interface;
@@ -30,8 +30,7 @@ mod DodgeCoin {
         erc20: ERC20Component::Storage,
         decimals: u8,
         owner: ContractAddress,
-        dodgeball: ContractAddress,
-        dodgecoach: ContractAddress
+        sneaker_contract: ContractAddress,
     }
 
     #[event]
@@ -47,44 +46,35 @@ mod DodgeCoin {
     }
 
     #[constructor]
-    fn constructor(ref self: ContractState, owner: ContractAddress, dodgeball: ContractAddress,) {
+    fn constructor(
+        ref self: ContractState, owner: ContractAddress, sneaker_contract: ContractAddress,
+    ) {
         // Call the internal function that writes decimals to storage
         self._set_decimals(1);
 
-        let name = "DodgeCoin";
-        let symbol = "DODGECOIN";
+        let name = "FitraceCoin";
+        let symbol = "FRT";
         self.erc20.initializer(name, symbol);
         self.erc20._mint(owner, 1000_000_00);
         self.owner.write(owner);
-        self.dodgeball.write(dodgeball);
+        self.sneaker_contract.write(sneaker_contract);
     }
     #[abi(embed_v0)]
-    impl IDodgeCoinImpl of super::IDodgeCoin<ContractState> {
+    impl IFRTCoinImpl of super::IFRTCoin<ContractState> {
         fn mint(ref self: ContractState, recipient: ContractAddress, amount: u256) {
             assert(amount < 10000, 'mint amount exceeds limit');
-            let caller = get_caller_address();
-            assert(
-                caller == self.owner.read()
-                    || caller == self.dodgeball.read()
-                    || caller == self.dodgecoach.read(),
-                'Caller do not have access'
-            );
+            assert(get_caller_address() == self.owner.read(), Errors::ONLY_OWNER);
             self.erc20._mint(recipient, amount);
         }
 
-        fn set_dodgeball_address(ref self: ContractState, dodgeball_address: ContractAddress) {
+        fn set_sneaker_contract_address(
+            ref self: ContractState, sneaker_contract_address: ContractAddress
+        ) {
             assert(get_caller_address() == self.owner.read(), Errors::ONLY_OWNER);
-            self.dodgeball.write(dodgeball_address);
+            self.sneaker_contract.write(sneaker_contract_address);
         }
-        fn get_dodgeball_address(self: @ContractState) -> ContractAddress {
-            self.dodgeball.read()
-        }
-        fn set_dodgecoach_address(ref self: ContractState, dodgecoach_address: ContractAddress) {
-            assert(get_caller_address() == self.owner.read(), Errors::ONLY_OWNER);
-            self.dodgecoach.write(dodgecoach_address);
-        }
-        fn get_dodgecoach_address(self: @ContractState) -> ContractAddress {
-            self.dodgecoach.read()
+        fn get_sneaker_contract_address(self: @ContractState) -> ContractAddress {
+            self.sneaker_contract.read()
         }
     }
 
